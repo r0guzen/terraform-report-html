@@ -2,170 +2,77 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>Terraform Change Report</title>
+<title>Terraform Change Report – {{ device_name }}</title>
 
 <style>
-:root {
-  --green: #2ecc71;
-  --yellow: #f1c40f;
-  --red: #e74c3c;
-  --bg: #f5f7fa;
-  --card: #ffffff;
-  --text: #2c3e50;
-}
-
 body {
-  font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Arial, sans-serif;
-  background: var(--bg);
-  color: var(--text);
-  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #f5f7fa;
   padding: 24px;
 }
 
-h2 {
-  margin-top: 0;
-}
+h2 { margin-top: 0; }
 
 .group {
-  background: var(--card);
+  background: white;
   border-radius: 10px;
-  margin-bottom: 18px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+  margin-bottom: 16px;
+  box-shadow: 0 2px 6px rgba(0,0,0,.05);
 }
 
-.group summary {
-  padding: 14px 18px;
+summary {
+  padding: 14px;
   cursor: pointer;
-  font-size: 16px;
   font-weight: 600;
-  list-style: none;
-}
-
-.group summary::-webkit-details-marker {
-  display:none;
-}
-
-.group-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.count {
-  background: #e0e6ed;
-  padding: 2px 10px;
-  border-radius: 12px;
-  font-size: 12px;
 }
 
 .resource {
   border-top: 1px solid #eee;
-  padding: 14px 18px;
+  padding: 12px;
 }
 
-.resource:first-child {
-  border-top: none;
-}
-
-.resource-card {
-  border-left: 5px solid #ccc;
-  padding-left: 12px;
-}
-
-.create { border-color: var(--green); }
-.update { border-color: var(--yellow); }
-.delete { border-color: var(--red); }
-
-.resource-title {
-  display: flex;
-  justify-content: space-between;
-  font-weight: 600;
-  margin-bottom: 8px;
-}
-
-.badge {
-  padding: 2px 8px;
-  border-radius: 6px;
-  color: white;
-  font-size: 11px;
-}
-
-.create-badge { background: var(--green); }
-.update-badge { background: var(--yellow); }
-.delete-badge { background: var(--red); }
+.create { border-left: 5px solid #2ecc71; }
+.update { border-left: 5px solid #f1c40f; }
+.delete { border-left: 5px solid #e74c3c; }
 
 .cols {
   display: flex;
   gap: 16px;
-  margin-top: 8px;
 }
 
-.col {
-  width: 50%;
-}
+.col { width: 50%; }
 
 pre {
-  background: #f7f9fc;
-  padding: 10px;
+  background: #f7f7f7;
+  padding: 8px;
   border-radius: 6px;
-  overflow-x: auto;
   font-size: 12px;
-}
-
-details.inner summary {
-  cursor: pointer;
-  font-weight: 600;
-  margin-bottom: 4px;
-}
-
-footer {
-  margin-top: 40px;
-  font-size: 12px;
-  color: #888;
 }
 </style>
 </head>
 
 <body>
 
-<h2>Terraform Change Report</h2>
+<h2>Device: {{ device_name }}</h2>
 
-{% if terraform_changes | length == 0 %}
-<p>No effective changes detected.</p>
-{% endif %}
-
-{% for type, resources in terraform_changes | groupby("type") %}
+{% for type, items in resources | groupby("type") %}
 <details class="group">
-  <summary>
-    <div class="group-header">
-      <span>{{ type }}</span>
-      <span class="count">{{ resources | length }}</span>
-    </div>
-  </summary>
+  <summary>{{ type }} ({{ items|length }})</summary>
 
-  {% for r in resources %}
+  {% for r in items %}
   {% set action = r.actions[0] %}
-  <div class="resource">
-    <div class="resource-card {{ action }}">
-      <div class="resource-title">
-        <span>{{ r.address }}</span>
-        <span class="badge {{ action }}-badge">{{ action|upper }}</span>
+  <div class="resource {{ action }}">
+    <strong>{{ r.address }}</strong> — {{ action|upper }}
+
+    <div class="cols">
+      <div class="col">
+        <h4>Before</h4>
+        <pre>{{ r.before | to_nice_json }}</pre>
       </div>
 
-      <div class="cols">
-        <div class="col">
-          <details class="inner" open>
-            <summary>Before</summary>
-            <pre>{{ r.before | to_nice_json }}</pre>
-          </details>
-        </div>
-
-        <div class="col">
-          <details class="inner" open>
-            <summary>After</summary>
-            <pre>{{ r.after | to_nice_json }}</pre>
-          </details>
-        </div>
+      <div class="col">
+        <h4>After</h4>
+        <pre>{{ r.after | to_nice_json }}</pre>
       </div>
     </div>
   </div>
@@ -173,8 +80,8 @@ footer {
 </details>
 {% endfor %}
 
-<footer>
-Generated from Terraform plan — preview only. Final changes validated via FortiManager install preview.
+<footer style="margin-top:30px;font-size:12px;color:#888">
+Preview only. Final changes validated via FortiManager install preview.
 </footer>
 
 </body>
