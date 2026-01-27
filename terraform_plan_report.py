@@ -2,24 +2,40 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Iterable
 
 from ansible.plugins.action import ActionBase
 from ansible.errors import AnsibleActionFail
 
 
+MASK = "**********"
+
+
 def _remove_nulls(obj: Any) -> Any:
-    """
-    Recursively remove keys with None values.
-    """
     if isinstance(obj, dict):
-        return {
-            k: _remove_nulls(v)
-            for k, v in obj.items()
-            if v is not None
-        }
+        return {k: _remove_nulls(v) for k, v in obj.items() if v is not None}
     if isinstance(obj, list):
         return [_remove_nulls(v) for v in obj if v is not None]
+    return obj
+
+
+def _redact(obj: Any, keys: Iterable[str]) -> Any:
+    """
+    Recursively replace values for matching keys with MASK.
+    Keys are matched case-insensitively.
+    """
+    if isinstance(obj, dict):
+        new = {}
+        for k, v in obj.items():
+            if k.lower() in keys:
+                new[k] = MASK
+            else:
+                new[k] = _redact(v, keys)
+        return new
+
+    if isinstance(obj, list):
+        return [_redact(v, keys) for v in obj]
+
     return obj
 
 
@@ -29,9 +45,18 @@ class ActionModule(ActionBase):
     def run(self, tmp=None, task_vars=None):
         super().run(tmp, task_vars)
 
-        plan_path = self._task.args.get("plan_json")
+        args = self._task.args
+
+        plan_path = args.get("plan_json")
+        redact_keys = args.get("redact_keys", [])
+
         if not plan_path:
             raise AnsibleActionFail("plan_json parameter is required")
+
+        if not isinstance(redact_keys, list):
+            raise AnsibleActionFail("redact_keys must be a list")
+
+        redact_keys = {k.lower() for k in redact_keys}
 
         path = Path(plan_path)
         if not path.exists():
@@ -61,14 +86,16 @@ class ActionModule(ActionBase):
             if before == after:
                 continue
 
-            # Extract device_name (prefer after)
+            # Redact secrets early
+            before = _redact(before, redact_keys)
+            after = _redact(after, redact_keys)
+
             device = after.get("device_name") or before.get("device_name")
             if not device:
                 raise AnsibleActionFail(
                     f"device_name missing in resource {rc.get('address')}"
                 )
 
-            # Remove device_name from payload (now metadata)
             before.pop("device_name", None)
             after.pop("device_name", None)
 
@@ -88,4 +115,8 @@ class ActionModule(ActionBase):
             "ansible_facts": {
                 "terraform_changes_by_device": by_device
             }
-        }
+
+        result["changed"] = False
+        result["terraform_changes_by_device"] = by_device
+
+        return result
