@@ -5,55 +5,150 @@
 <title>Terraform Change Report – {{ device_name }}</title>
 
 <style>
-body {
-  font-family: Arial, sans-serif;
-  background: #f5f7fa;
-  padding: 24px;
+:root {
+  --bg-main: #eef1f5;
+  --bg-card: #ffffff;
+  --bg-soft: #f7f9fc;
+
+  --green: #2ecc71;
+  --yellow: #f1c40f;
+  --red: #e74c3c;
+
+  --text-main: #2c3e50;
+  --text-soft: #6b7280;
 }
 
-h2 { margin-top: 0; }
+body {
+  margin: 0;
+  background: var(--bg-main);
+  font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Arial, sans-serif;
+  color: var(--text-main);
+}
+
+.container {
+  max-width: 1100px;
+  margin: auto;
+  padding: 32px 24px 60px;
+}
+
+.header {
+  background: var(--bg-card);
+  border-radius: 14px;
+  padding: 20px 26px;
+  box-shadow: 0 4px 12px rgba(0,0,0,.06);
+  margin-bottom: 24px;
+}
+
+.header h2 {
+  margin: 0;
+  font-size: 22px;
+}
+
+.subtle {
+  color: var(--text-soft);
+  font-size: 13px;
+}
 
 .group {
-  background: white;
-  border-radius: 10px;
-  margin-bottom: 16px;
-  box-shadow: 0 2px 6px rgba(0,0,0,.05);
+  background: var(--bg-card);
+  border-radius: 14px;
+  margin-bottom: 18px;
+  box-shadow: 0 3px 10px rgba(0,0,0,.05);
+  overflow: hidden;
 }
 
-summary {
-  padding: 14px;
+.group summary {
+  padding: 16px 22px;
   cursor: pointer;
   font-weight: 600;
+  background: var(--bg-soft);
+}
+
+.group summary::-webkit-details-marker {
+  display:none;
 }
 
 .resource {
-  border-top: 1px solid #eee;
-  padding: 12px;
+  padding: 18px 22px;
+  border-top: 1px solid #e6e9ef;
 }
 
-.create { border-left: 5px solid #2ecc71; }
-.update { border-left: 5px solid #f1c40f; }
-.delete { border-left: 5px solid #e74c3c; }
+.resource:first-child {
+  border-top: none;
+}
+
+.resource-card {
+  border-left: 6px solid #ccc;
+  padding-left: 14px;
+}
+
+.create { border-color: var(--green); }
+.update { border-color: var(--yellow); }
+.delete { border-color: var(--red); }
+
+.resource-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.address {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.badge {
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  color: white;
+}
+
+.create-badge { background: var(--green); }
+.update-badge { background: var(--yellow); }
+.delete-badge { background: var(--red); }
 
 .cols {
   display: flex;
-  gap: 16px;
+  gap: 18px;
 }
 
-.col { width: 50%; }
+.col {
+  width: 50%;
+}
+
+.col h4 {
+  margin: 0 0 6px 0;
+  font-size: 13px;
+  color: var(--text-soft);
+}
 
 pre {
-  background: #f7f7f7;
-  padding: 8px;
-  border-radius: 6px;
+  background: #f8fafc;
+  padding: 10px 12px;
+  border-radius: 8px;
   font-size: 12px;
+  overflow-x: auto;
+}
+
+footer {
+  margin-top: 40px;
+  font-size: 12px;
+  color: var(--text-soft);
+  text-align: center;
 }
 </style>
 </head>
 
 <body>
 
-<h2>Device: {{ device_name }}</h2>
+<div class="container">
+
+<div class="header">
+  <h2>FortiGate: {{ device_name }}</h2>
+  <div class="subtle">Terraform change preview – final state validated via FortiManager install preview</div>
+</div>
 
 {% for type, items in resources | groupby("type") %}
 <details class="group">
@@ -61,28 +156,35 @@ pre {
 
   {% for r in items %}
   {% set action = r.actions[0] %}
-  <div class="resource {{ action }}">
-    <strong>{{ r.address }}</strong> — {{ action|upper }}
-
-    <div class="cols">
-      <div class="col">
-        <h4>Before</h4>
-        <pre>{{ r.before | to_nice_json }}</pre>
+  <div class="resource">
+    <div class="resource-card {{ action }}">
+      <div class="resource-title">
+        <div class="address">{{ r.address }}</div>
+        <span class="badge {{ action }}-badge">{{ action|upper }}</span>
       </div>
 
-      <div class="col">
-        <h4>After</h4>
-        <pre>{{ r.after | to_nice_json }}</pre>
+      <div class="cols">
+        <div class="col">
+          <h4>Before</h4>
+          <pre>{{ r.before | to_nice_json }}</pre>
+        </div>
+
+        <div class="col">
+          <h4>After</h4>
+          <pre>{{ r.after | to_nice_json }}</pre>
+        </div>
       </div>
+
     </div>
   </div>
   {% endfor %}
 </details>
 {% endfor %}
 
-<footer style="margin-top:30px;font-size:12px;color:#888">
-Preview only. Final changes validated via FortiManager install preview.
+<footer>
+Generated from Terraform plan — preview only
 </footer>
 
+</div>
 </body>
 </html>
