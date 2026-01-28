@@ -141,12 +141,30 @@ pre {
   overflow-x: auto;
 }
 
+.hidden { display:none; }
+
 .empty {
   text-align: center;
   color: var(--text-soft);
   margin-top: 40px;
   display: none;
 }
+
+.diff-add {
+  color: #16a34a;
+  font-weight: 700;
+}
+
+.diff-update {
+  color: #ca8a04;
+  font-weight: 700;
+}
+
+.diff-del {
+  color: #dc2626;
+  font-weight: 700;
+}
+
 </style>
 </head>
 
@@ -169,6 +187,14 @@ pre {
     </div>
 
     <input class="search" placeholder="Search resources, values, addresses…" oninput="filterResources(this.value)">
+
+    <div style="margin-top:12px;">
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;">
+        <strong>View:</strong>
+        <input type="checkbox" id="formatToggle" onchange="toggleFormat()">
+        JSON
+      </label>
+    </div>
   </div>
 </div>
 
@@ -187,10 +213,13 @@ pre {
 
       <div class="cols">
         <div class="col">
-          <pre>{{ r.before | to_nice_json }}</pre>
+          <pre class="yaml">{{ r.before | diff_yaml(r.after) | safe }}</pre>
+          <pre class="json hidden">{{ r.before | to_nice_json }}</pre>
         </div>
+
         <div class="col">
-          <pre>{{ r.after | to_nice_json }}</pre>
+          <pre class="yaml">{{ r.after | diff_yaml(r.before) | safe }}</pre>
+          <pre class="json hidden">{{ r.after | to_nice_json }}</pre>
         </div>
       </div>
     </div>
@@ -223,6 +252,15 @@ function filterResources(q) {
   });
 
   document.getElementById("empty").style.display = any ? "none" : "block";
+}
+
+function toggleFormat() {
+  const json = document.querySelectorAll(".json");
+  const yaml = document.querySelectorAll(".yaml");
+  const checked = document.getElementById("formatToggle").checked;
+
+  json.forEach(e => e.style.display = checked ? "block" : "none");
+  yaml.forEach(e => e.style.display = checked ? "none" : "block");
 }
 </script>
 
