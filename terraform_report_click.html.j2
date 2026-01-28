@@ -154,6 +154,59 @@ pre {
   display: none;
 }
 
+.format-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.switch {
+  position: relative;
+  width: 60px;
+  height: 26px;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  inset: 0;
+  background-color: #cbd5e1;
+  transition: .25s;
+  border-radius: 999px;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 22px;
+  width: 22px;
+  left: 4px;
+  bottom: 2px;
+  background-color: white;
+  transition: .25s;
+  border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(0,0,0,.2);
+}
+
+/* Checked = JSON */
+
+input:checked + .slider {
+  background-color: #64748b;
+}
+
+input:checked + .slider:before {
+  transform: translateX(32px);
+}
+
 .diff-add {
   color: #16a34a;
   font-weight: 700;
@@ -207,13 +260,15 @@ pre {
 
     <input class="search" placeholder="Search resources, values, addresses…" oninput="filterResources(this.value)">
 
-    <div style="margin-top:12px;">
-      <label style="display:flex;align-items:center;gap:8px;font-size:13px;">
-        <strong>View:</strong>
+    <div class="format-toggle">
+      <span>JSON</span>
+      <label class="switch">
         <input type="checkbox" id="formatToggle" onchange="toggleFormat()">
-        JSON
+        <span class="slider"></span>
       </label>
+      <span>YAML</span>
     </div>
+
   </div>
 </div>
 
