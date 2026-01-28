@@ -57,52 +57,55 @@ class FilterModule:
     # ----------------------------
 
     def _diff(self, before: Any, after: Any, indent=0):
-        lines = []
         pad = "  " * indent
-
-        if isinstance(before, dict) and isinstance(after, dict):
-            keys = sorted(set(before) | set(after))
-
-            for key in keys:
-                b = before.get(key)
+        lines = []
+    
+        if isinstance(after, dict):
+            before = before or {}
+    
+            for key in sorted(after.keys()):
                 a = after.get(key)
-
+                b = before.get(key)
+    
                 esc_key = html.escape(str(key))
-
+    
+                # ADDED
                 if key not in before:
-                    lines.append(
-                        f'{pad}<span class="diff-add">{esc_key}: {html.escape(str(a))}</span>'
-                    )
-
-                elif key not in after:
-                    lines.append(
-                        f'{pad}<span class="diff-del">{esc_key}: {html.escape(str(b))}</span>'
-                    )
-
+                    if isinstance(a, dict):
+                        lines.append(f'{pad}<span class="diff-add">{esc_key}:</span>')
+                        lines.extend(self._diff({}, a, indent + 1))
+                    else:
+                        lines.append(
+                            f'{pad}<span class="diff-add">{esc_key}: {html.escape(str(a))}</span>'
+                        )
+    
+                # UNCHANGED
                 elif b == a:
                     if isinstance(a, dict):
                         lines.append(f"{pad}{esc_key}:")
                         lines.extend(self._diff(b, a, indent + 1))
                     else:
                         lines.append(f"{pad}{esc_key}: {html.escape(str(a))}")
-
+    
+                # UPDATED
                 else:
                     if isinstance(a, dict):
-                        lines.append(
-                            f'{pad}<span class="diff-update">{esc_key}:</span>'
-                        )
+                        lines.append(f'{pad}<span class="diff-update">{esc_key}:</span>')
                         lines.extend(self._diff(b, a, indent + 1))
                     else:
                         lines.append(
                             f'{pad}<span class="diff-update">{esc_key}: {html.escape(str(a))}</span>'
                         )
-
+    
+            # REMOVED keys
+            for key in sorted(set(before.keys()) - set(after.keys())):
+                esc_key = html.escape(str(key))
+                lines.append(f'{pad}<span class="diff-del">{esc_key}: {html.escape(str(before[key]))}</span>')
+    
         else:
             if before != after:
-                lines.append(
-                    f'{pad}<span class="diff-update">{html.escape(str(after))}</span>'
-                )
+                lines.append(f'{pad}<span class="diff-update">{html.escape(str(after))}</span>')
             else:
                 lines.append(f'{pad}{html.escape(str(after))}')
-
+    
         return lines
