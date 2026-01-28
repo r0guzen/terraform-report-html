@@ -52,16 +52,22 @@ body {
 
 .summary {
   display: flex;
-  gap: 12px;
+  gap: 10px;
   margin-top: 10px;
 }
 
 .pill {
-  background: #e5e9f0;
   padding: 4px 12px;
   border-radius: 999px;
   font-size: 12px;
+  font-weight: 600;
+  color: white;
 }
+
+.total-pill { background: #64748b; }
+.create-pill { background: var(--green); }
+.update-pill { background: var(--yellow); }
+.delete-pill { background: var(--red); }
 
 .search {
   width: 100%;
@@ -156,17 +162,15 @@ pre {
     <h2>FortiGate: {{ device_name }}</h2>
 
     <div class="summary">
-      <span class="pill">Total: {{ resources|length }}</span>
-      <span class="pill">Create: {{ creates }}</span>
-      <span class="pill">Update: {{ updates }}</span>
-      <span class="pill">Delete: {{ deletes }}</span>
+      <span class="pill total-pill">Total: {{ resources|length }}</span>
+      <span class="pill create-pill">Create: {{ creates }}</span>
+      <span class="pill update-pill">Update: {{ updates }}</span>
+      <span class="pill delete-pill">Delete: {{ deletes }}</span>
     </div>
 
     <input class="search" placeholder="Search resources, values, addresses…" oninput="filterResources(this.value)">
   </div>
 </div>
-
-<div id="content">
 
 {% for type, items in resources | groupby("type") %}
 <details class="group">
@@ -174,8 +178,7 @@ pre {
 
   {% for r in items %}
   {% set action = r.actions[0] %}
-  {% set search = r.address ~ " " ~ type ~ " " ~ r.before.keys()|join(" ") ~ " " ~ r.after.keys()|join(" ") %}
-  <div class="resource" data-search="{{ search }}">
+  <div class="resource">
     <div class="resource-card {{ action }}">
       <div class="resource-title">
         <strong>{{ r.address }}</strong>
@@ -196,8 +199,6 @@ pre {
 </details>
 {% endfor %}
 
-</div>
-
 <div class="empty" id="empty">No matching changes.</div>
 
 </div>
@@ -211,7 +212,7 @@ function filterResources(q) {
     let groupHas = false;
 
     group.querySelectorAll(".resource").forEach(r => {
-      const match = r.dataset.search.toLowerCase().includes(q);
+      const match = r.innerText.toLowerCase().includes(q);
       r.style.display = match ? "" : "none";
       if (match) groupHas = true;
     });
