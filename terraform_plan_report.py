@@ -11,12 +11,40 @@ from ansible.errors import AnsibleActionFail
 MASK = "**********"
 
 
-def _remove_nulls(obj: Any) -> Any:
-    if isinstance(obj, dict):
-        return {k: _remove_nulls(v) for k, v in obj.items() if v is not None}
-    if isinstance(obj, list):
-        return [_remove_nulls(v) for v in obj if v is not None]
-    return obj
+def _clean_value(value: Any, *, keep_root_empty_dict: bool = False) -> Any:
+    """
+    Recursively remove:
+      - None values
+      - empty lists
+      - empty dicts (except root if keep_root_empty_dict=True)
+
+    Returns cleaned value or None if fully empty.
+    """
+
+    if value is None:
+        return None
+
+    if isinstance(value, list):
+        cleaned = [
+            _clean_value(v)
+            for v in value
+            if _clean_value(v) is not None
+        ]
+        return cleaned or None
+
+    if isinstance(value, dict):
+        cleaned = {}
+        for k, v in value.items():
+            cv = _clean_value(v)
+            if cv is not None:
+                cleaned[k] = cv
+
+        if not cleaned:
+            return {} if keep_root_empty_dict else None
+
+        return cleaned
+
+    return value
 
 
 def _redact(obj: Any, keys: Iterable[str]) -> Any:
@@ -80,13 +108,16 @@ class ActionModule(ActionBase):
             if actions == ["no-op"]:
                 continue
 
-            before = _remove_nulls(change.get("before") or {})
-            after = _remove_nulls(change.get("after") or {})
+            before_raw = change.get("before") or {}
+            after_raw = change.get("after") or {}
+
+            before = _clean_value(before_raw, keep_root_empty_dict=True) or {}
+            after = _clean_value(after_raw, keep_root_empty_dict=True) or {}
 
             if before == after:
                 continue
 
-            # Redact secrets early
+            # Redact secrets
             before = _redact(before, redact_keys)
             after = _redact(after, redact_keys)
 
@@ -110,13 +141,9 @@ class ActionModule(ActionBase):
 
             by_device.setdefault(device, []).append(entry)
 
-        return {
+        result = {
             "changed": False,
-            "ansible_facts": {
-                "terraform_changes_by_device": by_device
-            }
-
-        result["changed"] = False
-        result["terraform_changes_by_device"] = by_device
+            "terraform_changes_by_device": by_device,
+        }
 
         return result
