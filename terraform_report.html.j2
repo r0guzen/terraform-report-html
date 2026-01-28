@@ -191,6 +191,7 @@ pre {
 {% set creates = ns.creates %}
 {% set updates = ns.updates %}
 {% set deletes = ns.deletes %}
+{% set replaces = ns.replaces %}
 
 <div class="sticky">
   <div class="header">
@@ -201,7 +202,7 @@ pre {
       <span class="pill create-pill">Create: {{ creates }}</span>
       <span class="pill update-pill">Update: {{ updates }}</span>
       <span class="pill delete-pill">Delete: {{ deletes }}</span>
-      <span class="pill delete-pill">Replace: {{ replaces }}</span>
+      <span class="pill replace-pill">Replace: {{ replaces }}</span>
     </div>
 
     <input class="search" placeholder="Search resources, values, addresses…" oninput="filterResources(this.value)">
