@@ -13,6 +13,7 @@
   --green: #16a34a;
   --yellow: #ca8a04;
   --red: #dc2626;
+  --purple: #7c3aed;
 
   --text-main: #1f2937;
   --text-soft: #6b7280;
@@ -68,6 +69,7 @@ body {
 .create-pill { background: var(--green); }
 .update-pill { background: var(--yellow); }
 .delete-pill { background: var(--red); }
+.replace-pill { background: var(--purple); }
 
 .search {
   width: 100%;
@@ -104,6 +106,7 @@ summary {
 .create { border-color: var(--green); }
 .update { border-color: var(--yellow); }
 .delete { border-color: var(--red); }
+.replace { border-color: var(--purple); }
 
 .resource-title {
   display: flex;
@@ -125,6 +128,7 @@ summary {
 .create-badge { background: var(--green); }
 .update-badge { background: var(--yellow); }
 .delete-badge { background: var(--red); }
+.replace-badge { background: var(--purple); }
 
 .cols {
   display: flex;
@@ -171,9 +175,22 @@ pre {
 <body>
 <div class="container">
 
-{% set creates = resources | selectattr("actions","contains",["create"]) | list | length %}
-{% set updates = resources | selectattr("actions","contains",["update"]) | list | length %}
-{% set deletes = resources | selectattr("actions","contains",["delete"]) | list | length %}
+{# Compute badge counts #}
+{% set ns = namespace(creates=0, updates=0, deletes=0, replaces=0) %}
+{% for r in resources %}
+  {% set acts = r.actions %}
+  {% if 'create' in acts and 'delete' in acts %}
+    {% set ns.replaces = ns.replaces + 1 %}
+  {% else %}
+    {% if 'create' in acts %}{% set ns.creates = ns.creates + 1 %}{% endif %}
+    {% if 'update' in acts %}{% set ns.updates = ns.updates + 1 %}{% endif %}
+    {% if 'delete' in acts %}{% set ns.deletes = ns.deletes + 1 %}{% endif %}
+  {% endif %}
+{% endfor %}
+
+{% set creates = ns.creates %}
+{% set updates = ns.updates %}
+{% set deletes = ns.deletes %}
 
 <div class="sticky">
   <div class="header">
@@ -184,6 +201,7 @@ pre {
       <span class="pill create-pill">Create: {{ creates }}</span>
       <span class="pill update-pill">Update: {{ updates }}</span>
       <span class="pill delete-pill">Delete: {{ deletes }}</span>
+      <span class="pill delete-pill">Replace: {{ replaces }}</span>
     </div>
 
     <input class="search" placeholder="Search resources, values, addresses…" oninput="filterResources(this.value)">
@@ -203,7 +221,7 @@ pre {
   <summary>{{ type }} ({{ items|length }})</summary>
 
   {% for r in items %}
-  {% set action = r.actions[0] %}
+  {% set action = 'replace' if ('create' in r.actions and 'delete' in r.actions) else r.actions[0] %}
   <div class="resource">
     <div class="resource-card {{ action }}">
       <div class="resource-title">
@@ -213,12 +231,12 @@ pre {
 
       <div class="cols">
         <div class="col">
-          <pre class="yaml">{{ r.before | diff_yaml(r.after) | safe }}</pre>
+          <pre class="yaml">{{ r.before | to_nice_yaml }}</pre>
           <pre class="json hidden">{{ r.before | to_nice_json }}</pre>
         </div>
 
         <div class="col">
-          <pre class="yaml">{{ r.after | diff_yaml(r.before) | safe }}</pre>
+          <pre class="yaml">{{ r.before | diff_yaml(r.after) | safe }}</pre>
           <pre class="json hidden">{{ r.after | to_nice_json }}</pre>
         </div>
       </div>
