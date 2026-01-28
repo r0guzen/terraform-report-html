@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Terraform Change Report – {{ device_name }}</title>
+
+<style>
+:root {
+  --bg-main: #eef1f5;
+  --bg-card: #ffffff;
+  --bg-soft: #f7f9fc;
+
+  --green: #16a34a;
+  --yellow: #ca8a04;
+  --red: #dc2626;
+  --purple: #7c3aed;
+
+  --text-main: #1f2937;
+  --text-soft: #6b7280;
+}
+
+body {
+  margin: 0;
+  background: var(--bg-main);
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
+}
+
+.container {
+  max-width: 1100px;
+  margin: auto;
+  padding: 24px;
+}
+
+.sticky {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--bg-main);
+  padding-bottom: 16px;
+  margin-bottom: 20px;
+}
+
+.header {
+  background: var(--bg-card);
+  border-radius: 14px;
+  padding: 20px 24px;
+  box-shadow: 0 4px 12px rgba(0,0,0,.06);
+}
+
+.header h2 {
+  margin: 0;
+}
+
+.summary {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.pill {
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  color: white;
+}
+
+.total-pill { background: #64748b; }
+.create-pill { background: var(--green); }
+.update-pill { background: var(--yellow); }
+.delete-pill { background: var(--red); }
+.replace-pill { background: var(--purple); }
+
+.search {
+  width: 100%;
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid #d0d6df;
+}
+
+.group {
+  background: var(--bg-card);
+  border-radius: 14px;
+  margin-bottom: 18px;
+  box-shadow: 0 3px 10px rgba(0,0,0,.05);
+}
+
+summary {
+  padding: 16px 22px;
+  cursor: pointer;
+  font-weight: 600;
+  background: var(--bg-soft);
+}
+
+.resource {
+  padding: 18px 22px;
+  border-top: 1px solid #e6e9ef;
+}
+
+.resource-card {
+  border-left: 6px solid #ccc;
+  padding-left: 14px;
+}
+
+.create { border-color: var(--green); }
+.update { border-color: var(--yellow); }
+.delete { border-color: var(--red); }
+.replace { border-color: var(--purple); }
+
+.resource-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.badge {
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  color: white;
+  text-transform: uppercase;
+  box-shadow: 0 2px 4px rgba(0,0,0,.15);
+}
+
+.create-badge { background: var(--green); }
+.update-badge { background: var(--yellow); }
+.delete-badge { background: var(--red); }
+.replace-badge { background: var(--purple); }
+
+.cols {
+  display: flex;
+  gap: 18px;
+}
+
+.col { width: 50%; }
+
+pre {
+  background: #f8fafc;
+  padding: 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  overflow-x: auto;
+}
+
+.hidden { display:none; }
+
+.empty {
+  text-align: center;
+  color: var(--text-soft);
+  margin-top: 40px;
+  display: none;
+}
+
+.diff-add {
+  color: #16a34a;
+  font-weight: 700;
+}
+
+.diff-update {
+  color: #ca8a04;
+  font-weight: 700;
+}
+
+.diff-del {
+  color: #dc2626;
+  font-weight: 700;
+}
+
+</style>
+</head>
+
+<body>
+<div class="container">
+
+{# Compute badge counts #}
+{% set ns = namespace(creates=0, updates=0, deletes=0, replaces=0) %}
+{% for r in resources %}
+  {% set acts = r.actions %}
+  {% if 'create' in acts and 'delete' in acts %}
+    {% set ns.replaces = ns.replaces + 1 %}
+  {% else %}
+    {% if 'create' in acts %}{% set ns.creates = ns.creates + 1 %}{% endif %}
+    {% if 'update' in acts %}{% set ns.updates = ns.updates + 1 %}{% endif %}
+    {% if 'delete' in acts %}{% set ns.deletes = ns.deletes + 1 %}{% endif %}
+  {% endif %}
+{% endfor %}
+
+{% set creates = ns.creates %}
+{% set updates = ns.updates %}
+{% set deletes = ns.deletes %}
+{% set replaces = ns.replaces %}
+
+<div class="sticky">
+  <div class="header">
+    <h2>FortiGate: {{ device_name }}</h2>
+
+    <div class="summary">
+      <span class="pill total-pill" onclick="setActionFilter(null)">Total: {{ resources|length }}</span>
+      <span class="pill create-pill" onclick="setActionFilter('create')">Create: {{ creates }}</span>
+      <span class="pill update-pill" onclick="setActionFilter('update')">Update: {{ updates }}</span>
+      <span class="pill delete-pill" onclick="setActionFilter('delete')">Delete: {{ deletes }}</span>
+      <span class="pill replace-pill" onclick="setActionFilter('replace')">Replace: {{ replaces }}</span>
+    </div>
+
+    <input class="search" placeholder="Search resources, values, addresses…" oninput="filterResources(this.value)">
+
+    <div style="margin-top:12px;">
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;">
+        <strong>View:</strong>
+        <input type="checkbox" id="formatToggle" onchange="toggleFormat()">
+        JSON
+      </label>
+    </div>
+  </div>
+</div>
+
+{% for type, items in resources | groupby("type") %}
+<details class="group">
+  <summary>{{ type }} ({{ items|length }})</summary>
+
+  {% for r in items %}
+  {% set action = 'replace' if ('create' in r.actions and 'delete' in r.actions) else r.actions[0] %}
+  <div class="resource" data-action="{{ action }}">
+    <div class="resource-card {{ action }}">
+      <div class="resource-title">
+        <strong>{{ r.address }}</strong>
+        <span class="badge {{ action }}-badge">{{ action }}</span>
+      </div>
+
+      <div class="cols">
+        <div class="col">
+          <pre class="yaml">{{ r.before | to_nice_yaml }}</pre>
+          <pre class="json hidden">{{ r.before | to_nice_json }}</pre>
+        </div>
+
+        <div class="col">
+          <pre class="yaml">{{ r.before | diff_yaml(r.after) | safe }}</pre>
+          <pre class="json hidden">{{ r.after | to_nice_json }}</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</details>
+{% endfor %}
+
+<div class="empty" id="empty">No matching changes.</div>
+
+</div>
+
+<script>
+let activeAction = null;
+
+function setActionFilter(action) {
+  activeAction = (activeAction === action) ? null : action;
+  applyFilters();
+}
+
+function filterResources(q) {
+  applyFilters();
+}
+
+function applyFilters() {
+  const q = document.querySelector(".search").value.toLowerCase();
+  let any = false;
+
+  document.querySelectorAll(".group").forEach(group => {
+    let groupHas = false;
+
+    group.querySelectorAll(".resource").forEach(r => {
+      const textMatch = r.innerText.toLowerCase().includes(q);
+      const actionMatch = !activeAction || r.dataset.action === activeAction;
+
+      const match = textMatch && actionMatch;
+
+      r.style.display = match ? "" : "none";
+      if (match) groupHas = true;
+    });
+
+    const filterActive = q.length > 0 || activeAction !== null;
+
+    group.open = filterActive && groupHas;
+    group.style.display = groupHas ? "" : "none";
+
+    if (groupHas) any = true;
+  });
+
+  document.getElementById("empty").style.display = any ? "none" : "block";
+
+  updatePillStates();
+}
+
+function updatePillStates() {
+  document.querySelectorAll(".summary .pill").forEach(p => {
+    p.style.opacity = "0.4";
+  });
+
+  if (!activeAction) {
+    document.querySelectorAll(".summary .pill").forEach(p => {
+      p.style.opacity = "1";
+    });
+    return;
+  }
+
+  document.querySelectorAll("." + activeAction + "-pill").forEach(p => {
+    p.style.opacity = "1";
+  });
+}
+
+function toggleFormat() {
+  const json = document.querySelectorAll(".json");
+  const yaml = document.querySelectorAll(".yaml");
+  const checked = document.getElementById("formatToggle").checked;
+
+  json.forEach(e => e.style.display = checked ? "block" : "none");
+  yaml.forEach(e => e.style.display = checked ? "none" : "block");
+}
+</script>
+
+</body>
+</html>
