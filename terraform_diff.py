@@ -50,6 +50,23 @@ class FilterModule:
         lines = self._diff(before, after, suppress_removals=is_replace)
         return "\n".join(lines)
 
+
+    def restrict_before(self, before, after, actions=None):
+        """
+        For replace actions, limit before dict to keys present in after.
+        Otherwise return before unchanged.
+        """
+    
+        is_replace = actions and "create" in actions and "delete" in actions
+    
+        if not is_replace:
+            return before
+    
+        if isinstance(before, dict) and isinstance(after, dict):
+            return {k: before.get(k) for k in after.keys()}
+    
+        return before
+
     # ----------------------------
     # Internal Helpers
     # ----------------------------
