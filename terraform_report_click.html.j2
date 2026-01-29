@@ -51,12 +51,6 @@ body {
   margin: 0;
 }
 
-.summary {
-  display: flex;
-  gap: 10px;
-  margin-top: 10px;
-}
-
 .group {
   background: var(--bg-card);
   border-radius: 14px;
@@ -70,6 +64,9 @@ summary {
   cursor: pointer;
   font-weight: 600;
   background: var(--bg-soft);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 
   /* Match parent rounding */
   border-radius: 14px;
@@ -81,12 +78,44 @@ details[open] > summary {
   border-bottom-right-radius: 0;
 }
 
+.summary {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+summary::after {
+  content: "▾";
+  transition: transform .2s ease;
+  color: var(--text-soft);
+}
+
+details[open] summary::after {
+  transform: rotate(180deg);
+}
+
+.resource:hover {
+  background: #fafbff;
+}
+
+.resource-title strong {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 13px;
+}
+
 .pill {
   padding: 4px 12px;
   border-radius: 999px;
   font-size: 12px;
   font-weight: 600;
   color: white;
+  cursor: pointer;
+  transition: transform .1s ease, box-shadow .1s ease;
+}
+
+.pill:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(0,0,0,.15);
 }
 
 .total-pill { background: #64748b; }
@@ -98,9 +127,35 @@ details[open] > summary {
 .search {
   width: 100%;
   margin-top: 12px;
-  padding: 10px 12px;
-  border-radius: 8px;
+  padding: 12px 14px 12px 42px;
+  border-radius: 10px;
   border: 1px solid #d0d6df;
+  background: #f8fafc;
+  font-size: 14px;
+  transition: .2s ease;
+}
+
+.search:focus {
+  outline: none;
+  background: white;
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99,102,241,.15);
+}
+
+.search-wrap {
+  position: relative;
+}
+
+.search-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  stroke: #94a3b8;
+  fill: none;
+  stroke-width: 2;
 }
 
 .group {
@@ -108,13 +163,6 @@ details[open] > summary {
   border-radius: 14px;
   margin-bottom: 18px;
   box-shadow: 0 3px 10px rgba(0,0,0,.05);
-}
-
-summary {
-  padding: 16px 22px;
-  cursor: pointer;
-  font-weight: 600;
-  background: var(--bg-soft);
 }
 
 .resource {
@@ -298,7 +346,16 @@ input:checked + .slider:before {
       <span class="pill replace-pill" onclick="setActionFilter('replace')">Replace: {{ replaces }}</span>
     </div>
 
-    <input class="search" placeholder="Search resources, values, addresses…" oninput="filterResources(this.value)">
+    <div class="search-wrap">
+      <svg class="search-icon" viewBox="0 0 24 24">
+        <circle cx="11" cy="11" r="7"></circle>
+        <line x1="16.65" y1="16.65" x2="21" y2="21"></line>
+      </svg>
+    
+      <input class="search"
+             placeholder="Search resources, values, addresses…"
+             oninput="filterResources(this.value)">
+    </div>
 
     <div style="margin-top:12px;">
       <div class="format-toggle">
