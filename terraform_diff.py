@@ -94,12 +94,20 @@ class FilterModule:
                     lines.extend(self._diff({}, a, indent + 1, suppress_removals))
 
                 elif b == a:
-                    lines.append(f"{pad}{esc_key}:")
-                    lines.extend(self._diff(b, a, indent + 1, suppress_removals))
-
+                    if isinstance(a, (dict, list)):
+                        lines.append(f"{pad}{esc_key}:")
+                        lines.extend(self._diff(b, a, indent + 1, suppress_removals))
+                    else:
+                        lines.append(f"{pad}{esc_key}: {html.escape(str(a))}")
+                
                 else:
-                    lines.append(f'{pad}<span class="diff-update">{esc_key}:</span>')
-                    lines.extend(self._diff(b, a, indent + 1, suppress_removals))
+                    if isinstance(a, (dict, list)):
+                        lines.append(f'{pad}<span class="diff-update">{esc_key}:</span>')
+                        lines.extend(self._diff(b, a, indent + 1, suppress_removals))
+                    else:
+                        lines.append(
+                            f'{pad}<span class="diff-update">{esc_key}: {html.escape(str(a))}</span>'
+                        )
 
             if not suppress_removals:
                 for key in sorted(set(before.keys()) - set(after.keys())):
