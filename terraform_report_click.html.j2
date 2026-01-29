@@ -57,6 +57,30 @@ body {
   margin-top: 10px;
 }
 
+.group {
+  background: var(--bg-card);
+  border-radius: 14px;
+  margin-bottom: 18px;
+  box-shadow: 0 3px 10px rgba(0,0,0,.05);
+  overflow: hidden; /* CRITICAL: clips summary to rounded corners */
+}
+
+summary {
+  padding: 16px 22px;
+  cursor: pointer;
+  font-weight: 600;
+  background: var(--bg-soft);
+
+  /* Match parent rounding */
+  border-radius: 14px;
+}
+
+/* When opened, square off the bottom of the summary only */
+details[open] > summary {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
 .pill {
   padding: 4px 12px;
   border-radius: 999px;
