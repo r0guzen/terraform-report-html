@@ -15,29 +15,33 @@ class FilterModule:
       - Removed -> red bold
       - Same    -> normal
 
-    Intended for Terraform plan before/after visualization.
+    For Terraform replace actions:
+      - suppress removals (after_unknown artifacts)
+      - show only real changes
     """
 
     def filters(self):
         return {
-            "diff_yaml": self.diff_yaml,
-            "to_nice_json": self.to_nice_json,
-            "to_nice_yaml": self.to_nice_yaml,
+            "diff_yaml": self.diff_yaml
         }
 
     # ----------------------------
     # Public Filters
     # ----------------------------
 
-    def diff_yaml(self, before, after):
+    def diff_yaml(self, before, after, actions=None):
         """
         Produce HTML-highlighted YAML-style diff.
 
         :param before: original object
         :param after: new object
+        :param actions: terraform actions list
         :return: HTML string
         """
-        lines = self._diff(before or {}, after or {})
+
+        is_replace = actions and "create" in actions and "delete" in actions
+
+        lines = self._diff(before or {}, after or {}, suppress_removals=is_replace)
         return "\n".join(lines)
 
     def to_nice_json(self, data):
@@ -56,56 +60,59 @@ class FilterModule:
     # Internal Helpers
     # ----------------------------
 
-    def _diff(self, before: Any, after: Any, indent=0):
+    def _diff(self, before: Any, after: Any, indent=0, suppress_removals=False):
         pad = "  " * indent
         lines = []
-    
+
         if isinstance(after, dict):
             before = before or {}
-    
+
             for key in sorted(after.keys()):
                 a = after.get(key)
                 b = before.get(key)
-    
+
                 esc_key = html.escape(str(key))
-    
+
                 # ADDED
                 if key not in before:
                     if isinstance(a, dict):
                         lines.append(f'{pad}<span class="diff-add">{esc_key}:</span>')
-                        lines.extend(self._diff({}, a, indent + 1))
+                        lines.extend(self._diff({}, a, indent + 1, suppress_removals))
                     else:
                         lines.append(
                             f'{pad}<span class="diff-add">{esc_key}: {html.escape(str(a))}</span>'
                         )
-    
+
                 # UNCHANGED
                 elif b == a:
                     if isinstance(a, dict):
                         lines.append(f"{pad}{esc_key}:")
-                        lines.extend(self._diff(b, a, indent + 1))
+                        lines.extend(self._diff(b, a, indent + 1, suppress_removals))
                     else:
                         lines.append(f"{pad}{esc_key}: {html.escape(str(a))}")
-    
+
                 # UPDATED
                 else:
                     if isinstance(a, dict):
                         lines.append(f'{pad}<span class="diff-update">{esc_key}:</span>')
-                        lines.extend(self._diff(b, a, indent + 1))
+                        lines.extend(self._diff(b, a, indent + 1, suppress_removals))
                     else:
                         lines.append(
                             f'{pad}<span class="diff-update">{esc_key}: {html.escape(str(a))}</span>'
                         )
-    
-            # REMOVED keys
-            for key in sorted(set(before.keys()) - set(after.keys())):
-                esc_key = html.escape(str(key))
-                lines.append(f'{pad}<span class="diff-del">{esc_key}: {html.escape(str(before[key]))}</span>')
-    
+
+            # REMOVED (skip for replace)
+            if not suppress_removals:
+                for key in sorted(set(before.keys()) - set(after.keys())):
+                    esc_key = html.escape(str(key))
+                    lines.append(
+                        f'{pad}<span class="diff-del">{esc_key}: {html.escape(str(before[key]))}</span>'
+                    )
+
         else:
             if before != after:
                 lines.append(f'{pad}<span class="diff-update">{html.escape(str(after))}</span>')
             else:
                 lines.append(f'{pad}{html.escape(str(after))}')
-    
+
         return lines
