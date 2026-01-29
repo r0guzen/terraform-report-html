@@ -15,15 +15,17 @@ class FilterModule:
       - Removed -> red bold
       - Same    -> normal
 
-    For Terraform replace actions:
-      - suppress removals (after_unknown artifacts)
-      - show only real changes
+    Replace behavior:
+      - suppress removals
+      - restrict before keys to after keys
     """
 
     def filters(self):
         return {
             "diff_yaml": self.diff_yaml,
-            "restrict_before": self.restrict_before
+            "to_nice_json": self.to_nice_json,
+            "to_nice_yaml": self.to_nice_yaml,
+            "restrict_before": self.restrict_before,
         }
 
     # ----------------------------
@@ -31,42 +33,39 @@ class FilterModule:
     # ----------------------------
 
     def diff_yaml(self, before, after, actions=None):
-        """
-        Produce HTML-highlighted YAML-style diff.
-    
-        For replace actions:
-          - limit before keys to those present in after
-          - suppress removals
-        """
-    
         is_replace = actions and "create" in actions and "delete" in actions
-    
+
         before = before or {}
         after = after or {}
-    
-        # For replace: only consider keys Terraform knows post-apply
+
         if is_replace and isinstance(before, dict) and isinstance(after, dict):
             before = {k: before.get(k) for k in after.keys()}
-    
+
         lines = self._diff(before, after, suppress_removals=is_replace)
         return "\n".join(lines)
 
-
     def restrict_before(self, before, after, actions=None):
-        """
-        For replace actions, limit before dict to keys present in after.
-        Otherwise return before unchanged.
-        """
-    
         is_replace = actions and "create" in actions and "delete" in actions
-    
+
         if not is_replace:
             return before
-    
+
         if isinstance(before, dict) and isinstance(after, dict):
             return {k: before.get(k) for k in after.keys()}
-    
+
         return before
+
+    def to_nice_json(self, data):
+        import json
+        return json.dumps(data, indent=2, sort_keys=True)
+
+    def to_nice_yaml(self, data):
+        import yaml
+        return yaml.safe_dump(
+            data,
+            sort_keys=False,
+            default_flow_style=False
+        )
 
     # ----------------------------
     # Internal Helpers
@@ -76,6 +75,11 @@ class FilterModule:
         pad = "  " * indent
         lines = []
 
+        # LISTS
+        if isinstance(after, list):
+            return self._diff_list(before or [], after, indent, suppress_removals)
+
+        # DICTS
         if isinstance(after, dict):
             before = before or {}
 
@@ -85,35 +89,18 @@ class FilterModule:
 
                 esc_key = html.escape(str(key))
 
-                # ADDED
                 if key not in before:
-                    if isinstance(a, dict):
-                        lines.append(f'{pad}<span class="diff-add">{esc_key}:</span>')
-                        lines.extend(self._diff({}, a, indent + 1, suppress_removals))
-                    else:
-                        lines.append(
-                            f'{pad}<span class="diff-add">{esc_key}: {html.escape(str(a))}</span>'
-                        )
+                    lines.append(f'{pad}<span class="diff-add">{esc_key}:</span>')
+                    lines.extend(self._diff({}, a, indent + 1, suppress_removals))
 
-                # UNCHANGED
                 elif b == a:
-                    if isinstance(a, dict):
-                        lines.append(f"{pad}{esc_key}:")
-                        lines.extend(self._diff(b, a, indent + 1, suppress_removals))
-                    else:
-                        lines.append(f"{pad}{esc_key}: {html.escape(str(a))}")
+                    lines.append(f"{pad}{esc_key}:")
+                    lines.extend(self._diff(b, a, indent + 1, suppress_removals))
 
-                # UPDATED
                 else:
-                    if isinstance(a, dict):
-                        lines.append(f'{pad}<span class="diff-update">{esc_key}:</span>')
-                        lines.extend(self._diff(b, a, indent + 1, suppress_removals))
-                    else:
-                        lines.append(
-                            f'{pad}<span class="diff-update">{esc_key}: {html.escape(str(a))}</span>'
-                        )
+                    lines.append(f'{pad}<span class="diff-update">{esc_key}:</span>')
+                    lines.extend(self._diff(b, a, indent + 1, suppress_removals))
 
-            # REMOVED (skip for replace)
             if not suppress_removals:
                 for key in sorted(set(before.keys()) - set(after.keys())):
                     esc_key = html.escape(str(key))
@@ -121,10 +108,39 @@ class FilterModule:
                         f'{pad}<span class="diff-del">{esc_key}: {html.escape(str(before[key]))}</span>'
                     )
 
-        else:
-            if before != after:
-                lines.append(f'{pad}<span class="diff-update">{html.escape(str(after))}</span>')
+            return lines
+
+        # SCALARS
+        if before != after:
+            return [f'{pad}<span class="diff-update">{html.escape(str(after))}</span>']
+
+        return [f'{pad}{html.escape(str(after))}']
+
+    def _diff_list(self, before, after, indent, suppress_removals):
+        pad = "  " * indent
+        lines = []
+
+        before = before or []
+
+        max_len = max(len(before), len(after))
+
+        for i in range(max_len):
+            b = before[i] if i < len(before) else None
+            a = after[i] if i < len(after) else None
+
+            prefix = f"{pad}- "
+
+            if b is None:
+                lines.append(f'{prefix}<span class="diff-add">{html.escape(str(a))}</span>')
+
+            elif a is None:
+                if not suppress_removals:
+                    lines.append(f'{prefix}<span class="diff-del">{html.escape(str(b))}</span>')
+
+            elif b == a:
+                lines.append(f"{prefix}{html.escape(str(a))}")
+
             else:
-                lines.append(f'{pad}{html.escape(str(after))}')
+                lines.append(f'{prefix}<span class="diff-update">{html.escape(str(a))}</span>')
 
         return lines
