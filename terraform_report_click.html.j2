@@ -307,7 +307,9 @@ input:checked + .slider:before {
 
         <div class="col">
           <div class="col-label">Current</div>
-          <pre class="yaml">{{ r.before | to_nice_yaml }}</pre>
+          <pre class="yaml">
+          {{ r.before | restrict_before(r.after, r.actions) | to_nice_yaml }}
+          </pre>
           <pre class="json hidden">{{ r.before | to_nice_json }}</pre>
         </div>
         
