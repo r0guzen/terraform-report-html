@@ -32,29 +32,23 @@ class FilterModule:
     def diff_yaml(self, before, after, actions=None):
         """
         Produce HTML-highlighted YAML-style diff.
-
-        :param before: original object
-        :param after: new object
-        :param actions: terraform actions list
-        :return: HTML string
+    
+        For replace actions:
+          - limit before keys to those present in after
+          - suppress removals
         """
-
+    
         is_replace = actions and "create" in actions and "delete" in actions
-
-        lines = self._diff(before or {}, after or {}, suppress_removals=is_replace)
+    
+        before = before or {}
+        after = after or {}
+    
+        # For replace: only consider keys Terraform knows post-apply
+        if is_replace and isinstance(before, dict) and isinstance(after, dict):
+            before = {k: before.get(k) for k in after.keys()}
+    
+        lines = self._diff(before, after, suppress_removals=is_replace)
         return "\n".join(lines)
-
-    def to_nice_json(self, data):
-        import json
-        return json.dumps(data, indent=2, sort_keys=True)
-
-    def to_nice_yaml(self, data):
-        import yaml
-        return yaml.safe_dump(
-            data,
-            sort_keys=False,
-            default_flow_style=False
-        )
 
     # ----------------------------
     # Internal Helpers
