@@ -57,6 +57,8 @@ body {
   margin-bottom: 18px;
   box-shadow: 0 3px 10px rgba(0,0,0,.05);
   overflow: hidden; /* CRITICAL: clips summary to rounded corners */
+  width: 100%;
+  box-sizing: border-box;
 }
 
 summary {
@@ -67,7 +69,8 @@ summary {
   display: flex;
   justify-content: space-between;
   align-items: center;
-
+  width: 100%;
+  box-sizing: border-box;
   /* Match parent rounding */
   border-radius: 14px;
 }
@@ -92,6 +95,10 @@ summary::after {
 
 details[open] summary::after {
   transform: rotate(180deg);
+}
+
+details > summary {
+  list-style: none;
 }
 
 .resource:hover {
@@ -133,6 +140,7 @@ details[open] summary::after {
   background: #f8fafc;
   font-size: 14px;
   transition: .2s ease;
+  line-height: 1.2;
 }
 
 .search:focus {
@@ -156,13 +164,7 @@ details[open] summary::after {
   stroke: #94a3b8;
   fill: none;
   stroke-width: 2;
-}
-
-.group {
-  background: var(--bg-card);
-  border-radius: 14px;
-  margin-bottom: 18px;
-  box-shadow: 0 3px 10px rgba(0,0,0,.05);
+  pointer-events: none;
 }
 
 .resource {
