@@ -61,17 +61,22 @@ body {
   box-sizing: border-box;
 }
 
+details.group {
+  max-width: 100%;
+  display: block;
+}
+
 summary {
   padding: 16px 22px;
   cursor: pointer;
   font-weight: 600;
   background: var(--bg-soft);
-  display: flex;
-  justify-content: space-between;
+
+  display: grid;
+  grid-template-columns: 1fr auto;
   align-items: center;
+
   width: 100%;
-  box-sizing: border-box;
-  /* Match parent rounding */
   border-radius: 14px;
 }
 
@@ -89,8 +94,9 @@ details[open] > summary {
 
 summary::after {
   content: "▾";
-  transition: transform .2s ease;
   color: var(--text-soft);
+  transition: transform .2s ease;
+  margin-left: 12px;
 }
 
 details[open] summary::after {
@@ -99,6 +105,10 @@ details[open] summary::after {
 
 details > summary {
   list-style: none;
+}
+
+details > summary::-webkit-details-marker {
+  display: none;
 }
 
 .resource:hover {
@@ -165,6 +175,10 @@ details > summary {
   fill: none;
   stroke-width: 2;
   pointer-events: none;
+}
+
+.search {
+  height: 42px;
 }
 
 .resource {
