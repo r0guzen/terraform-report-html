@@ -22,7 +22,8 @@ class FilterModule:
 
     def filters(self):
         return {
-            "diff_yaml": self.diff_yaml
+            "diff_yaml": self.diff_yaml,
+            "restrict_before": self.restrict_before
         }
 
     # ----------------------------
